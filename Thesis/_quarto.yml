@@ -1,0 +1,65 @@
+project:
+  type: book
+  execute-dir: project
+book:
+  title: "Enhancing untargeted LC-MS metabolomics data analysis with Bioconductor"
+  author:
+    - name: "Vilhelm Karl Mauritz Suksi"
+  chapters:
+    - index.qmd
+    - Chapters/0abbreviations.qmd
+    - Chapters/1introduction.qmd
+    - Chapters/2literature_review.qmd
+    - Chapters/3research_objectives.qmd
+    - Chapters/4materials_and_methods.qmd
+    - Chapters/5results.qmd
+    - Chapters/6discussion.qmd
+    - Chapters/7conclusion.qmd
+    - Chapters/8sammanfattning.qmd
+    - Chapters/9references.qmd
+  output-file: "VilhelmSuksi_thesis"
+format:
+  html:
+    theme: cosmo
+  pdf:
+    template-partials:
+      - Tex/before-body.tex
+      - Tex/toc.tex
+    documentclass: scrbook
+    classoption: openany, oneside
+    toc: true
+    toc-depth: 2
+    toc-title: "Table of contents"
+    numbersections: true
+    numberdepth: 2
+    papersize: a4
+    geometry:
+      - inner=4cm
+      - outer=2.5cm
+      - top=2.5cm
+      - bottom=2.5cm
+      - headsep=22pt
+      - headheight=11pt
+      - footskip=33pt
+      - ignorehead
+      - ignorefoot
+      - heightrounded
+    linestretch: 1.5
+    fontsize: 12pt
+    indent: false
+    mainfont: "Times New Roman"
+    monofont: "Times New Roman"
+    sansfont: "Times New Roman"
+    mathfont: "Times New Roman"
+    include-in-header: Tex/include_in_header.tex
+    fig-pos: H
+knitr:
+  opts_chunk:
+    results: 'hide'
+    fig.keep: 'all'
+    dev: 'png'
+cache: false
+echo: false
+warning: false
+error: false
+fig-show: asis

@@ -1,0 +1,34 @@
+$if(has-frontmatter)$
+\frontmatter
+$endif$
+\newgeometry{margin=25.4mm}
+$if(title)$
+\cleardoublepage
+\thispagestyle{empty}
+{\centering
+\hbox{}\vskip 0cm plus 1fill
+{\Huge\bfseries $title$ \par}
+\vspace{12ex}
+$for(by-author)$
+{\Large\bfseries Vilhelm Karl Mauritz Suksi \par}
+\vspace{3ex}
+{\Large\bfseries 41856-403-2017, vsuksi@abo.fi \par}
+\vskip 0cm plus 2fill
+\begin{figure}
+\centerline{\includegraphics{Tex/AboAkademiUniversity.eps}}
+\end{figure}
+{\bfseries\large Bioscience program at Åbo Akademi, biochemistry major \par}
+\vspace{3ex}
+{\bfseries\large BK00BM49: Master's thesis in biochemistry, 30 credits \par}
+\vspace{12ex}
+{\bfseries\large Supervisor: Leo Lahti \par}
+{\bfseries\large Co-supervisor: Guillaume Jacquemet \par}
+$endfor$
+\vspace{12ex}
+{\bfseries\small Submitted in total fulfilment of the requirements
+of the degree of Master of Philosophy \par}
+}
+$endif$
+\restoregeometry
+\let\mainmatterreal\mainmatter
+\let\mainmatter\relax

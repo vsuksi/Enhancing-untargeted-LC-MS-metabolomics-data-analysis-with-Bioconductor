@@ -1,0 +1,522 @@
+---
+title: "Example analysis"
+author: "Vilhelm Suksi"
+format: html
+code-overflow: wrap
+echo: false
+warning: false
+message: false
+cache: false
+---
+
+The balanced data features 72 fetal brain, intestine and placentae samples from 24 fetuses collected at euthanization of six specific pathogen free (SPF) and six germ free (GF) mouse dams just before expected delivery (Pessa-Morikawa et al. 2022). The data was already collected and preprocessed with MS-DIAL, as per Notame, when the author received it. As such, the example analysis was restricted to data pretreatment and feature selection, the extent of the Notame R package and the functionality covered by the TreeSummarizedExperiment data container. Restricting to a single data container also makes sense since the Notame best practices are targeted towards new users which may lack programming proficiency. For demonstration purposes, only the data from the HILIC chromatographic column in positive ionization mode was included to reduce execution time and allow for comprehensive visualization of quality control (QC) and results. Sample identifiers and raw data file names were removed by request of the data provider. The substantive aim of the example analysis was also formulated for demonstrative utility, namely ranking features distinguishing between GF and SPF membership in intestine tissue.
+
+The sourced code was mostly modified from Notame for better interoperability and relies on minimal non-Bioconductor dependencies. The non-Bioconductor dependencies are not concerned with computations which could affect the results, although visualizations may suffer. As such, the provided code can be considered Bioconductor-compatible. It must be noted that credit should go to Anton Klåvus for the slightly modified Notame code.
+
+```{r}
+#| label: Setup
+#| include: false
+#| cache: false
+
+# Set seed
+set.seed(2024)
+
+# Load packages
+library(cowplot)
+library(doParallel)
+library(magrittr)
+library(ggplot2)
+library(foreach)
+library(ggdendro)
+
+# Source functions
+source("Input/Code/visualizations.R")
+source("Input/Code/utils.R")
+source("Input/Code/helpers.R")
+
+```
+
+```{r}
+#| label: Prepare data
+#| echo: true
+
+library(TreeSummarizedExperiment)
+
+data <- readRDS("Input/Data/example_data.RDS")
+
+# Create tse instance.
+## The assay slot holds the feature abundances in each sample, of which there can be many versions with matching numbers of rows and columns. The colData slot for sample metadata requires columns called Sample_ID, "Injection_order", "QC" (Sample/QC membership) and a "Flag" column with NA's. Depending on the analysis at hand, columns with time point, study group, batch id and subject ID may also be needed. The rowData slot is for feature metadata, such as retention time, average m/z and various results.
+
+tse <- TreeSummarizedExperiment(assays = data$assay, rowData = data$rowData, colData = data$colData)
+
+# At this point, different modes could be included in a list to be looped over for data pretreatment using the sapply function
+
+# Name original assay
+names(assays(tse)) <- "original"
+
+# Select a subset of features for faster execution
+tse <- tse[1:1000, ]
+
+# Create flag column for quality assessment and subsetting
+rowData(tse)$Flag <- NA
+
+# Mark NA's
+tse <- mark_nas(tse, value = 0)
+
+```
+
+Low-quality features, as identified by detection in less than 70% of the QC samples or having a non-parametric RSD of < 0.2 and non-parametric D-ratio of < 0.4 were flagged. There were 342 low-quality features before drift correction. QC visualizations were drawn before and after drift correction, excluding flagged features, to inspect the effect of drift correction and as exploratory data analysis. In substantive research, data pretreatment would be performed separately for each mode with QC visualizations at several points during data pretreatment.
+
+```{r}
+#| label: Quality control visualizations before drift correction
+#| echo: true
+
+library(pmp)
+library(scater)
+
+# Filter features by detection rate in QC samples
+tse <- filter_peaks_by_fraction(tse, min_frac = 0.7, classes = tse$Group, method = "QC", qc_label = "QC", remove_peaks = TRUE)
+
+# Flag low-quality features before drift correction. Below, non-parametric quality metrics were used due to the multitude of study groups and tissue types of small sample size.
+tse <- flag_quality(tse, condition = "(RSD_r < 0.2 & D_ratio_r < 0.4)")
+# nrow(rowData(tse)[rowData(tse)$Flag %in% "Low_quality", ])
+
+# Create QC visualizations before drift correction.
+pre_visualizations <- list()
+pre_visualizations[["pre_injection_lm"]] <- injection_lm_plot(tse[rowData(tse)$Flag %in% NA ,])
+pre_visualizations[["pre_sample_boxplots"]] <- sample_boxplot_plot(tse[rowData(tse)$Flag %in% NA, ], order_by = "Injection_order", fill_by = "Tissue")
+pre_visualizations[["pre_dist_density"]] <- dist_density_plot(tse[rowData(tse)$Flag %in% NA, ], title = NULL)
+pre_visualizations[["pre_tsne"]] <- runTSNE(tse[rowData(tse)$Flag %in% NA & complete.cases(assay(tse)), ], assay.type = "original", scale = TRUE, perplexity = 15, ncomponents = 2) %>% plotReducedDim("TSNE", colour_by = "Group", shape_by = "Tissue")
+pre_visualizations[["pre_sample_dendrogram"]] <- dendrogram_plot(tse[rowData(tse)$Flag %in% NA, ], color = "Group", title = NULL, subtitle = "")
+pre_visualizations[["pre_sample_heatmap"]] <- sample_heatmap_plot(tse[rowData(tse)$Flag %in% NA, ], group_col = "Tissue", title = NULL)
+
+# for (i in 1:length(pre_visualizations)) {
+#   ggsave(plot = pre_visualizations[[i]], file = paste("Output/QC_Drift/", names(pre_visualizations)[i], ".png", sep=""))
+# }
+
+```
+
+Features were temporarily nlog-transformed with an offset of one to better meet the assumptions of the smoothed cubic spline model relating the abundance of each feature to injection order. Unfortunately, the QSRSC function in the pmp package, which is almost identical to the drift correction methodology used in Notame, produces severely inflated values for many features in an unpredictable manner, so LOESS drift correction from the qmtools package was adopted instead.
+
+```{r}
+#| label: Drift correction
+#| echo: true
+#| output: false
+
+# Perform drift correction (with cross validation of smoothing parameter), returns drastically inflated values for some features as of Bioconductor 3.18.
+## assays(tse)$corrected <- QCRSC(tse, order=tse$Injection_order, batch=tse$Batch_ID, classes=tse$Group, qc_label="QC", spar_lim = c(0.5, 1.5)) %>% assay()
+
+library(phenomis)
+
+# Make temporary tse with modified colData as required by LOESS drift correction in the phenomis package
+phenomis_tse <- tse
+names(colData(phenomis_tse))[names(colData(phenomis_tse)) == "Injection_order"] <- "injectionOrder"
+names(colData(phenomis_tse))[names(colData(phenomis_tse)) == "Batch_ID"] <- "batch"
+phenomis_tse$batch %<>% as.character()
+names(colData(phenomis_tse))[names(colData(phenomis_tse)) == "QC"] <- "sampleType"
+phenomis_tse$sampleType %<>% as.character()
+phenomis_tse$sampleType[phenomis_tse$sampleType == "QC"] <- "pool"
+phenomis_tse$sampleType[phenomis_tse$sampleType == "Sample"] <- "sample"
+
+# Transform with natural logarithm
+assay(phenomis_tse) <- log(assay(phenomis_tse) + 1)
+
+# Perform drift correction and reverse log transformation
+assays(tse)$corrected <- correcting(phenomis_tse, method.vc = "loess", reference.vc = "pool", report.c = "none") %>% assay() %>% exp()
+
+```
+
+Low-quality features were flagged anew to inspect the results of drift correction and exclusion of low-quality features after drift correction. The visualizations also serve to explore the data at large. The number of low-quality features (342) remained unchanged after drift correction.
+
+```{r}
+#| label: Quality control
+#| echo: true
+
+# Flag suspicious features, in this case for drastically inflated features from the QCRSC function
+# inflated_features <- which(assays(tse)$corrected > max(assays(tse)$original, na.rm=TRUE), arr.ind=TRUE)
+#rowData(tse)[rownames(tse) %in% unique(rownames(inflated_features)), ]$Flag <- "Inflated values after drift correction"
+# nrow(rowData(tse)[rowData(tse)$Flag %in% "Inflated values after drift correction", ])
+
+# Flag low-quality features
+tse <- flag_quality(tse, assay.type = "corrected", condition = "(RSD_r < 0.2 & D_ratio_r < 0.4)")
+# nrow(rowData(tse)[rowData(tse)$Flag %in% "Low_quality", ])
+```
+
+```{r}
+#| label: Quality control visualizations after drift correction
+#| echo: true
+#| fig-height: 6
+#| fig-width: 10
+
+# Draw drift correction plots
+drift_plots <- sbc_plot(assays(tse)$original[rowData(tse)$Flag %in% NA, ], assays(tse)$corrected[rowData(tse)$Flag %in% NA, ], classes = tse$Group, batch = tse$Batch_ID, output = NULL, indexes = 1:nrow(tse[rowData(tse)$Flag %in% NA,]))
+names(drift_plots) <- rownames(tse[rowData(tse)$Flag %in% NA, ])
+
+# Create QC visualizations after drift correction
+post_visualizations <- list()
+post_visualizations[["post_injection_lm"]] <- injection_lm_plot(tse[rowData(tse)$Flag %in% NA, ], assay.type = "corrected")
+post_visualizations[["post_sample_boxplots"]] <- sample_boxplot_plot(tse[rowData(tse)$Flag %in% NA, ], assay.type = "corrected", order_by = "Injection_order", fill_by = "Tissue")
+post_visualizations[["post_dist_density"]] <- dist_density_plot(tse[rowData(tse)$Flag %in% NA, ], assay.type = "corrected", title = NULL)
+post_visualizations[["post_tsne"]] <- runTSNE(tse[rowData(tse)$Flag %in% NA & complete.cases(assay(tse)), ], assay.type = "corrected", scale = TRUE, perplexity = 15, ncomponents = 2) %>% plotReducedDim("TSNE", colour_by = "Group", shape_by = "Tissue")
+post_visualizations[["post_sample_dendrogram"]] <- dendrogram_plot(tse[rowData(tse)$Flag %in% NA, ], assay.type = "corrected", color = "Group", title = NULL, subtitle = "")
+post_visualizations[["post_sample_heatmap"]] <- sample_heatmap_plot(tse[rowData(tse)$Flag %in% NA, ], assay.type = "corrected", group_col = "Tissue", title = NULL)
+
+# for (i in 1:length(post_visualizations)) {
+#   ggsave(plot = post_visualizations[[i]], file = paste("Output/Drift/", names(post_visualizations)[i], ".png", sep=""))
+# }
+```
+
+Linear models relating each feature’s abundance to injection order were fit to visualize the effect of drift correction by drawing histograms of the p-values for the regression coefficient of the models. After drift correction, the frequencies of p-values optimally follow the uniform distribution represented by a horizontal line, indicating that there is no global relationship between injection order and feature abundance (Breheny et al. 2018). The results indicate that unwanted variation from drift is reduced in that the frequency of p-values under 0.05 were reduced and more features populate the expected uniform distribution resulting from biological variance (Figure 1). The change is probably barely discernible because of the multitude of study groups and tissue types. No marked differences are seen across histograms of all samples and biological samples as the effect of the seven QC samples is limited in comparison to the 72 biological samples. The histograms for the QC samples alone best illustrate the effect of drift correction. Before drift correction p-values tend towards the lower end because of systemic drift. After drift correction the predictor, injection order, is globally less associated with the response, intensity, resulting in higher p-values. The uniform distribution is not populated, probably because of the majority of features violating some assumptions of linear regression.
+```{r}
+#| label: Injection order model histograms for HILIC positive data
+#| fig-cap: "Figure 1. P-values from linear regression models relating each feature to injection order. The dashed red lines represent the expected uniform distribution. A) Before drift correction, featuring all samples, biological samples and QC samples. B) After drift correction, featuring all samples, biological samples and QC samples"
+#| fig-height: 10
+#| fig-width: 10
+
+p <- plot_grid(pre_visualizations[[1]], post_visualizations[[1]], labels = c('A', 'B'))
+plot(p)
+```
+
+To visualize systematic drift in global feature intensities across samples, boxplots representing the distribution of all features’ abundances in each sample were drawn. In addition to being insensitive to outliers, quartiles preserve information about center and spread (Krzywinski et al. 2014). Such boxplots often show a systematic decrease or increase in signal intensity as a function of injection order, which should be reduced after drift correction. Visually speaking, there is no systematic increase or decrease in global feature intensity across the samples before or after drift correction (Figure 2). This could be because of a small amount of drift and the features experiencing drift in different directions, cancelling each other out on the global feature intensity level.
+
+```{r}
+#| label: Sample intensity boxplots for HILIC positive data
+#| fig-cap: "Figure 2. Boxplots representing the feature intensities in each sample in injection order, featuring the median as a black line, the interquartile range as a box and the 1.5x the interquartile range as whiskers. A) Before drift correction. B) After drift correction."
+#| fig-width: 15
+#| fig-height: 5
+
+p <- plot_grid(pre_visualizations[[2]], post_visualizations[[2]], labels = c('A', 'B'))
+plot(p)
+```
+
+Feature variation was globally assessed using Euclidean distances between samples using density plots. Drawing such density plots before and after drift correction hopefully shows how Euclidean distances are reduced after drift correction, especially for the QC samples which optimally group independently of the biological samples as they include only random measurement error and experimental variation (Figure 3). However, drift correction does not seem to have resulted in a reduction of Euclidean distances of features between samples.
+
+```{r}
+#| label: Distances between samples density plot for HILIC positive data
+#| fig-cap: "Figure 3. Density plot of Euclidean distances between samples. A) Before drift correction. B) After drift correction."
+#| fig-width: 15
+#| fig-height: 6
+
+p <- plot_grid(pre_visualizations[[3]], post_visualizations[[3]], labels = c('A', 'B'))
+plot(p)
+```
+
+A dimensionality reduction technique, t-distributed stochastic neighbor embedding (t-SNE) was applied to visualize sample patterns in the data according to study group and QC sample membership. T-SNE can separate non-linearly separable data. Trends in the biological samples may
+not be apparent before or after drift correction, but the QC samples should group more tightly after drift correction. Samples can also be colored by injection order, where after drift correction, trends should dissipate. t-SNE separated the data for visualization according to tissue membership, although there is no marked difference before and after drift correction (Figure 4). The tissue groups are distinct, consisting of two somewhat distinct subgroups representing GF and SPF membership. GF/SPF membership is least well separated in intestine tissue. The QC samples group tightly.
+
+```{r}
+#| label: t-SNE dimensionality reduction plot for HILIC positive data
+#| fig-cap: "Figure 4. t-SNE plots of samples, shape by study group and color by tissue type. A) Before drift correction. B) After drift correction."
+#| fig-width: 10
+#| fig-height: 4
+
+p <- plot_grid(pre_visualizations[[4]], post_visualizations[[4]], labels = "AUTO")
+plot(p)
+```
+
+Finally, hierarchical clustering using Ward’s criterion on Euclidean distances between samples was used to visualize sample clusters in a dendrogram, where the QC samples should cluster together earlier after drift correction. More distinct clusters corresponding to study groups/time points indicate higher quality after drift correction. Hierarchical clustering using Ward’s criterion and PCA are complementary unsupervised learning approaches answering similar questions from different perspectives since both operate in Euclidean space (Murtagh et al. 2014). Hierarchical clustering offers higher resolution of the relationships between samples (Murtagh et al. 2014), which could reveal clusters of samples which exhibit a different metabolic response to treatment. This may guide the research and prompt further questions relating the clusters to clinical variables, for example. Herein, there are very small differences before and after drift correction concerning the clustering of the placenta and QC samples (Figure 5).
+
+```{r}
+#| label: Sample clustering dendrogram
+#| fig-cap: "Figure 5. Dendrograms of hierarchical sample clusters using Ward’s criterion on Euclidean distances between samples. A) Before drift correction. B) After drift correction."
+#| fig-width: 15
+#| fig-height: 4
+
+p <- plot_grid(pre_visualizations[[5]], post_visualizations[[5]], labels = "AUTO")
+plot(p)
+```
+
+The same clustering methodology was used for heat maps. In such a heatmap, clusters of samples with similar metabolic patterns as well as groups of discriminating metabolites that drive sample clustering can be identified (Benton et al. 2015). The Euclidean distance between samples can be expected to reduce as variation from systematic drift is reduced, resulting in more pronounced blocks of the study groups/time points and QC samples. Herein, the QC block pattern is slightly darker after drift correction (Figure 6). Tissue-wise, the effect of drift correction is negligible in the heatmap coloration. The brain and intestine blocks appear rather uniform within study groups, while the placenta block seems to consists of sub-blocks, the origin of which remains unclear.
+
+```{r}
+#| label: Sample clustering heatmap
+#| fig-cap: "Figure 6. Heatmaps of hierarchical sample clusters using Ward’s criterion on Euclidean distances between samples. A) Before drift correction. B) After drift correction."
+#| fig-height: 13
+#| fig-width: 24
+
+p <- plot_grid(pre_visualizations[[6]], post_visualizations[[6]], labels = "AUTO")
+plot(p)
+```
+
+To complete the abundance matrix, missing values were classified as MCARs/MARs and MNARs and imputed using random forest and a linear regression-based single imputation method, respectively. In case of multiple modes, imputation could be performed separately for each mode to reduce execution time at the expense of performance. There were a total of 319 missing values before imputation, which were all imputed using mechanism-aware imputation to complete the abundance matrix for analysis. This approach differs from Notame, in which the random forest imputation assumes that all missing values are MCARs. In mechanism-aware imputation, the alpha parameter value was five, indicating small amounts of MNARs originating from the detection threshold. Thus missing values were predominantly imputed using random forest imputation, with the relatively few MNARs imputed using single imputation.
+
+```{r}
+#| label: Mechanism-aware imputation
+#| echo: true
+
+library(MAI)
+
+# Remove QC samples
+tse <- drop_qcs(tse)
+
+# Impute quality biological samples
+imputed_quality <- MAI(assays(tse)$corrected[rowData(tse)$Flag %in% NA ,], MCAR_algorithm = "random_forest", MNAR_algorithm= "Single", n_cores = -1)
+assays(tse)$imputed <- assays(tse)$corrected
+assays(tse)$imputed[rowData(tse)$Flag %in% NA, ] <- imputed_quality$Imputed_data
+
+# Impute low-quality biological samples
+tse <- MAI(tse, assay_ix = 3, MCAR_algorithm = "random_forest", MNAR_algorithm = "Single", n_cores = -1)
+
+```
+
+Features were then clustered to reduce the redundant representation of the same metabolite. Each cluster was represented by the sum of the cluster in each sample.
+
+Feature clustering somewhat reduced the redundant representation of metabolites in the dataset, with 998 before and 738 features after feature clustering. The shared part of the feature clustering methodology differed from Notame in that instead of Pearson's correlation, Spearman's correlation was used. Moreover, the Notame feature clustering methodology returns the abundances of the feature with the highest median abundance in each cluster. Herein, the sum of the features in a cluster for each sample was returned.
+At this point of the analysis, modes would be merged.
+
+
+```{r}
+#| label: Cluster and aggregate features
+#| echo: true
+
+library(qmtools)
+
+# Change assay order for clustering, assay index functionality is not working in the clustering function
+assays(tse) <- assays(tse)[c("imputed", "corrected", "original")]
+
+# Generate feature clusters
+tse <- clusterFeatures(tse, i = 1, rtime_var = "Average_Rt_min_", rt_grouping = "closest", cor_grouping = "connected", cor_use = "everything", cor_method = "spearman")
+
+library(QFeatures)
+
+# Aggregate feature clusters
+altExp(tse, "aggregated") <- aggregateFeatures(tse, fcol = "feature_group", fun = colSums, na.rm = TRUE)
+
+# Include feature names for clusters, in this case based on the order in which they appear in the aggregated data
+rownames(altExp(tse)) <- rownames(tse[match(rownames(altExp(tse)), rowData(tse)$feature_group), ])
+
+# Add average m/z and RT to altExp as these were removed by aggregation
+rowData(altExp(tse))$Average_Mz <- rowData(tse[match(rownames(altExp(tse)), rownames(tse))])$Average_Mz
+rowData(altExp(tse))$Average_Rt_min_ <- rowData(tse[match(rownames(altExp(tse)), rownames(tse))])$Average_Rt_min_
+
+# Add flag column to altExp, assuming that highly correlated features are of similar quality
+rowData(altExp(tse))$Flag <- rowData(tse[match(rownames(altExp(tse)), rownames(tse))])$Flag
+
+# Name altExp assay
+names(assays(altExp(tse)))[[1]] <- "aggregated"
+
+# To merge several modes, one could do:
+#aggregated <- do.call("rbind", list(aggregated_HILIC_pos, aggregated_HILIC_neg, aggregated_RP_pos, aggregated_RP_neg))
+
+#saveRDS(tse, "Output/pretreated_tse2.RDS")
+
+```
+Samples of all tissue types were needed for drift correction and QC despite the substantive aim of the example analysis only pertaining to intestine tissue.
+
+The imputed and clustered set was used without further normalization, transformation or scaling for univariate analysis. A non-parametric test, Mann-Whitney U test, was used as there were only 12 intestine samples per study group. P-values were adjusted using the Benjamin-Hochberg false discovery rate (FDR) approach for multiple testing to correct for the chance of obtaining significant results in a situation where, on average, a significance threshold of 0.05 for twenty tests would give a false positive for one test. Then again, hypothesis testing was not an end in itself in this analysis.
+
+```{r}
+#| label: Mann-Whitney U test
+#| echo: true
+
+library(POMA)
+
+# Subset the altExp slot by tissue and drop flagged feature
+intestine_tse <- drop_flagged(altExp(tse)[, tse$Tissue=="Intestine"])
+
+# Scale for negative imputed values (MNARs)
+assay(intestine_tse) <- assay(intestine_tse) + abs(min(assay(intestine_tse)))
+
+# Include grouping variable as first column for PomaUnivariate()
+colData(intestine_tse) <- colData(intestine_tse)[, c("Group", colnames(colData(intestine_tse))[-7])]
+
+# Perform Mann-Whitney U test and order by p-value or q-value
+test_intestine <- PomaUnivariate(intestine_tse, method = "mann", adjust = "fdr")
+test_intestine <- test_intestine[order(test_intestine$pvalueAdj), ]
+
+# Include feature ranks from Mann-Whitney U test
+rowData(intestine_tse)$uni_ranks <- NA
+rowData(intestine_tse)[match(test_intestine$feature, rownames(intestine_tse)), ]$uni_ranks <- c(1:nrow(test_intestine))
+
+# Include p-values in the tse instance
+rowData(intestine_tse)$pvalues <- test_intestine[match(test_intestine$feature, rownames(intestine_tse)), ]$pvalue
+
+# Include q-values in the tse instances
+rowData(intestine_tse)$qvalues <- test_intestine[match(test_intestine$feature, rownames(intestine_tse)), ]$pvalueAdj
+
+# Include the fold change (FC) of features in the tse instance
+rowData(intestine_tse)$FC <- test_intestine[match(test_intestine$feature, rownames(intestine_tse)), ]$FC
+
+# Include p-values with sign of effect in the tse instance, positive sign is more abundant in SPF mice
+intestine_tse <- sign_col(intestine_tse, direction_col = "FC", x_col = "pvalues", name = "sign_pvalues", type = 1)
+
+```
+
+Before supervised learning, the dataset was nlog-transformed to reduce heteroscedasticity and skewness and normalized for dilution with PQN. Random forest was then used for selecting a subset of features with respect to binary classification performance on GF/SPF membership, emphasizing a minimal, stable signature. The multivariate signature was not ranked, but tiered. Features within tiers were ranked according to fold-change. The univariate and multivariate ranks were then combined and forced to increments of one, with any ties resolved simply by the order in which they appeared in the dataset. Features excluded from the multivariate signature were ranked separately, and forced to rank after the combined ranks.
+
+The random forest model could classify GF and SPF intestine samples perfectly irrespective of including all features, only S-tier features or S- and A-tier features in the model. A single feature constituted the S-tier, which ranked fourth in the Mann-Whitney U test and first in the combined ranks. A total of eight features were included in the S, A, B, C and D tiers corresponding to a hierarchy of subsets found significant in the variable selection process.
+
+```{r}
+#| label: Multivariate analysis
+#| output: false
+#| echo: true
+
+library(biosigner)
+
+# Transform the abundances using the natural logarithm, with an offset of one
+assays(intestine_tse)$transformed <- log(assay(intestine_tse) + 1)
+
+# Normalize the abundances using probabilistic quotient normalization
+assays(intestine_tse)$normalized <- normalizePQN(assays(intestine_tse)$transformed, type = "median")
+
+# library(mia)
+# Standardization is not needed for scale-invariant random forest
+#plsda_tse <- transformCounts(intestine_tse, assay.type = "imputed", method = "standardize", name = "standardized")
+
+# Reorder assays for biosigner which inputs the first assay
+assays(intestine_tse) <- assays(intestine_tse)[c("normalized", "transformed", "aggregated")]
+
+# Perform feature selection
+biosigner <- biosign(intestine_tse, "Group", "randomforest")
+
+# Include the biosigner tiers in instance
+rowData(intestine_tse)$Group_biosign_forest <- rowData(biosigner)$Group_biosign_forest
+
+# Convert tiers to ranks and include in instance
+intestine_tse <- rank_tiers(intestine_tse, tier_col = "Group_biosign_forest", x_col = "pvalues")
+
+# Include combined ranks in instance
+rowData(intestine_tse)$combi_ranks <- as.data.frame(rowData(intestine_tse)[, c("uni_ranks", "mul_ranks")]) %>% rowSums()
+
+# Order the tissue tse's by feature rank
+intestine_tse <- intestine_tse[order(rowData(intestine_tse)$combi_ranks), ]
+
+# Make the ranks sequential with increments of one
+rowData(intestine_tse)[!is.na(rowData(intestine_tse)$combi_ranks), ]$combi_ranks <- c(1:nrow(intestine_tse[!is.na(rowData(intestine_tse)$combi_ranks), ]))
+
+#saveRDS(intestine_tse, "Output/intestine_tse2.RDS")
+
+```
+
+Due to the methodological nature of the thesis, feature-wise visualization is limited to the most high ranking feature. In substantive research, comprehensive feature-wise inspection of a subset of high-ranking features would be undertaken. As choice of results visualizations depends on the study design, the supplementary code is referred to for visualizations not applicable for the analysis performed herein, that is feature-wise plots for time-series data and PCA and PLS-DA score plots. Manhattan plots and cloud plots would be drawn separately for each mode.
+
+The highest ranking feature suffered minimally from drift (Figure 7), although in substantive research it may be of interest to inspect the drift pattern for all features included into a single entry by clustering.
+
+```{r}
+#| label: Drift correction plot for highest-ranking feature
+#| fig-cap: "Figure 7. Drift correction for the highest-ranking feature in log10 space. A) Before drift correction. B) After drift correction."
+#| fig-width: 10
+#| fig-height: 6
+
+# Get feature names from the cluster with the highest-ranking feature
+#feature_cluster <- rownames(tse[rowData(tse)$feature_group == rowData(intestine_tse)[1, ]$feature_group, ])
+
+# Plot drift correction for highest-ranking feature
+drift_plots[rownames(intestine_tse[1, ])]
+
+# for (i in 1:length(drift_plots[1:50])) {
+#   ggsave(plot = drift_plots[[i]], file = paste("Output/Feature-wise/Drift/", names(drift_plots)[i], ".png", sep=""))
+# }
+
+
+```
+
+Feature-wise plots are useful for inspecting select ranked features to compare distributions and differences in feature levels and identify outliers. The highest ranking feature in intestine tissue shows a large difference in abundance and distribution, with minimal outliers (Figure 8).
+
+```{r}
+#| label: Beeswarm plot
+#| fig-cap: "Figure 8. Beeswarm plot of the abundance of the highest ranking feature across study groups in intestine tissue. The mean is represented by a horizontal line, with hinges and whiskers representing the interquartile range and max 1.5x the interquartile range, respectively."
+#| fig-width: 10
+#| fig-height: 6
+
+beeswarm_plot(intestine_tse[1], assay.type = "aggregated", group_col = "Group", color = "Group", add_boxplots = TRUE)
+
+#beeswarm_plots <- lapply(intestine_tse[1:50, ], FUN = beeswarm_plot, assay.type = "aggregated", group_col = "Group", color = "Group", add_boxplots = TRUE)
+
+# for (i in 1:length(beeswarm_plots)) {
+#   ggsave(plot = beeswarm_plots[[i]], file = paste("Output/Feature-wise/Beeswarm/", names(beeswarm_plots)[i], ".png", sep=""))
+# }
+
+```
+
+With regards to comprehensive visualization, dimensionality reduction using t-SNE separated the clustered dataset according to study group (Figure 9).
+
+```{r}
+#| label: t-SNE
+#| fig-cap: "Figure 9. t-SNE plot of all samples in the dataset. Shape by tissue and color by group."
+#| fig-width: 10
+#| fig-height: 6
+
+t_SNE <- runTSNE(intestine_tse, assay.type = "aggregated", scale = TRUE, perplexity = 7, ncomponents = 2) %>% plotReducedDim("TSNE", colour_by = "Group")
+plot(t_SNE)
+
+#ggsave(plot = t_SNE, file = paste("Output/Comprehensive/t_SNE.png"))
+
+```
+
+To globally assess the univariate results, a histogram depicting the distribution of p-values from Mann-Whitney U tests testing the difference in feature abundances across study groups in intestine tissue was used (Figure 10). The results indicate that there is a true difference in global feature levels between GF and SPF mice, since the distribution clearly deviates from the uniform distribution.
+
+```{r}
+#| label: p-value histogram
+#| fig-cap: "Figure 10. The distribution of p-values from Mann-Whitney U tests testing the difference in feature abundance between study groups in intestine tissue. The dashed red lines represent the uniform distribution, namely that there is no difference in feature abundance between the study groups."
+#| fig-width: 10
+#| fig-height: 6
+
+p_histogram <- p_histogram_plot(list(rowData(intestine_tse)$qvalues))
+plot(p_histogram)
+
+#ggsave(plot = p_histogram, file = paste("Output/Comprehensive/p_histogram.png"))
+
+```
+
+To comprehensively assess the results from univariate tests and supervised learning, a volcano plot was used (Figure 11). Although Notame recommends coloring by the multivariate ranking, the features were colored by combined rank as coloring by the biosigner tiers would exclude almost all features from coloration. Eight top-ranking features included in the biosigner signature were labeled, making apparent the different perspectives that univariate and multivariate analyses have on the data. The volcano plot indicates that features more abundant in SPF intestine tissue have large fold changes in comparison to features less abundant in SPF intestine tissue, especially features with very small p-values. Small p-values seem to be somewhat disproportionately represented by features more abundant in SPF intestine tissue.
+
+
+```{r}
+#| label: Volcano plot
+#| fig-cap: "Figure 11. Volcano plot of p-values (negative log10 scale) from Mann-Whitney U tests testing the difference of feature abundances between study groups in intestine tissue against fold changes between study groups (log2 scale). Positive and negative fold changes are equidistant from the center (x = 1) of the x-axis. The features are colored by combined ranking."
+#| fig-width: 10
+#| fig-height: 6
+
+limit <- nrow(intestine_tse[rowData(intestine_tse)$Group_biosign_forest %in% c("S", "A", "B", "D")]) + 1
+
+volcano <- volcano_plot(intestine_tse, effect_col = "FC", p_col = "pvalues", q_col = "qvalues", color = "combi_ranks", log2_x = TRUE, title = NULL, label = "combi_ranks", label_limit = limit)
+plot(volcano)
+
+# ggsave(plot = volcano, file = paste("Output/Comprehensive/volcano.png"))
+
+```
+
+Relating biochemical characteristics to molecular features was done using Manhattan plots, where features with low p-values and low ranks seem rather evenly distributed with regards to average m/z (Figure 12A). The same holds true for RT (Figure 13B), although the plot appears truncated by RT because of only including the first 1000 features in the analysis. Nonpolar metabolites elute first from HILIC columns.
+
+```{r}
+#| label: Manhattan plot (m/z)
+#| fig-cap: "Figure 12A.  A directed Manhattan plot of p-values from Mann-Whitney U tests testing the difference of feature abundances between study groups in intestine tissue with m/z of the features as x-axis. The points are colored by combined ranks."
+#| fig-width: 10
+#| fig-height: 6
+
+manhattan_mz <- manhattan_plot(intestine_tse, x_col = "Average_Mz", p_col = "pvalues", q_col = "qvalues", effect_dir = "sign_pvalues", color = "combi_ranks", xlab = "Average mz", title = NULL)
+plot(manhattan_mz)
+
+#ggsave(plot = manhattan_mz, file = paste("Output/Comprehensive/manhattan_mz.png"))
+
+```
+
+
+```{r}
+#| label: Manhattan plot (RT)
+#| fig-cap: "Figure 12B. A directed Manhattan plot of p-values from Mann-Whitney U tests testing the difference of feature abundances between study groups in intestine tissue with RT of the features as x-axis. The points are colored by combined ranks."
+#| fig-width: 10
+#| fig-height: 6
+
+manhattan_RT <- manhattan_plot(intestine_tse, x_col = "Average_Rt_min_", p_col = "pvalues", q_col = "qvalues", effect_dir = "sign_pvalues", color = "combi_ranks", xlab = "Average RT (min)", title = NULL)
+plot(manhattan_RT)
+
+#ggsave(plot = manhattan_RT, file = paste("Output/Comprehensive/manhattan_RT.png"))
+
+```
+
+To visualize interesting features with regards to m/z, RT, p-value and combined ranks, in effect combining the data in the two Manhattan plots but without sign of effect, a cloud plot was used (Figure 13). The points are also commonly colored by fold-change (Benton et al. 2015). Again, trends are hardly discernible.
+
+```{r}
+#| label: Cloud plot
+#| fig-cap: "Figure 13. Cloud plot relating the m/z and RT of molecular features in intestine tissue. The size of the points reflect p-values from Mann-Whitney U test, testing the difference in feature abundances between study groups. The points are colored by combined ranking."
+#| fig-width: 10
+#| fig-height: 6
+
+cloud <- cloud_plot(intestine_tse, p_col = "pvalues", mz_col = "Average_Mz", rt_col = "Average_Rt_min_", color = "combi_ranks", title = NULL)
+plot(cloud)
+
+# ggsave(plot = cloud, file = paste("Output/Comprehensive/cloud.png"))
+
+```

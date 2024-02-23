@@ -1,0 +1,16 @@
+\pagenumbering{Roman}
+
+# Abstract {.unnumbered .unlisted}
+
+Insight in life science is increasingly data-driven, where new data science methodologies need to account for sparse, high-dimensional data from new experimental approaches. Untargeted LC-MS metabolomics data holds promise in teasing apart the quantities of small molecules in biological samples, the metabolome, which especially in conjunction with other omics can provide knowledge of complex, biological systems. However, due to experimental reasons and the extensive data analysis, untargeted LC-MS metabolomics data analysis meets challenges with regards to quality and reproducibility.
+
+Analysis of omics data is well developed in Bioconductor, a centralized repository focused on high-quality open research software for life science, wherein the use of computational documents is required for documentation. This thesis aims at enhancing the quality and reproducibility of untargeted LC-MS metabolomics data analysis by leveraging Bioconductor to implement the Notame workflow, detailed in the "Metabolomics Data Processing and Data Analysis—Current Best Practices" special issue of the Metabolites journal. To highlight the reproducibility aspect, the thesis is written with a computational document system called Quarto.
+
+Data pretreatment, feature selection and visualizations were implemented in a Bioconductor-compatible workflow using the TreeSummarizedExperiment container almost as specified by the best practices in the Notame protocol article. Data extraction and functionality related to biological context could not be implemented using the TreeSummarizedExperiment container, although these analysis steps are available using other containers in Bioconductor. This demonstration of the utility of the best practices of Notame, Bioconductor and Quarto may facilitate quality research efforts in tackling questions relating the metabolome to complex, biological systems in a reproducible fashion.
+
+
+# Acknowledgements {.unnumbered .unlisted}
+
+I'd like to express my sincere gratitude to professor Leo Lahti, professor Ion Petre and associate professor Guillaume Jacquemet for helping me pivot to computational biology. The patient supervision by Leo and Guillaume is well appreciated. Data was kindly provided by senior lecturer Mikael Niku. I also want to acknowledge the enthusiasm of doctoral researcher Retu Haikonen, professor Kati Hanhineva and doctoral researcher Anton Klåvus. Special thanks go out to Fanny and Vertti simply as faithful friends and for in-depth discussions about philosophy, the nature of concepts and other topics which have developed my critical faculty.
+
+\tableofcontents

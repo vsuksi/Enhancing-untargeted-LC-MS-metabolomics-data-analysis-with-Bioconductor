@@ -1,0 +1,21 @@
+\addtokomafont{disposition}{\rmfamily}
+\KOMAoptions{headings=small}
+\RedeclareSectionCommand[beforeskip=0pt]{chapter}
+\renewcommand*{\chaptermarkformat}{}
+\setkomafont{pageheadfoot}{\normalfont\normalcolor\footnotesize}
+\setkomafont{pagenumber}{\normalfont\normalcolor\footnotesize}
+\usepackage{scrlayer-scrpage}
+\pagestyle{headings}
+\lofoot[]{}
+\cofoot[\pagemark]{\pagemark}
+\rofoot[]{}
+\KOMAoptions{headwidth=\textwidth+1.5cm:-1.5cm}
+\KOMAoptions{footwidth=\textwidth+1.5cm:-1.5cm}
+\usepackage{caption}
+\setlength\LTleft{0pt}
+\setlength\LTright{0pt}
+\captionsetup[table]{labelformat=empty}
+\captionsetup[table]{belowskip=10pt}
+\captionsetup[figure]{labelformat=empty, justification=justified, singlelinecheck=false}
+\captionsetup[figure]{aboveskip=10pt}
+\captionsetup{font={small}}

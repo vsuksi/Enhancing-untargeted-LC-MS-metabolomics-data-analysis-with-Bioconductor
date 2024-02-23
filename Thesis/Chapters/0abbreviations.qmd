@@ -1,0 +1,49 @@
+# Abbreviations {.unnumbered .unlisted}
+
+DAWG — Data Analysis Working Group (of MSI)
+
+FDR — Benjamin-Hochberg False Discovery Rate
+
+GF — Germ-Free
+
+LC-MS — Liquid Chromatography-Mass Spectrometry
+
+LC-MS/MS — Tandem Liquid Chromatography-Mass Spectrometry
+
+MAR — Missing At Random
+
+MCAR — Missing Completely At Random
+
+MNAR — Missing Not At Random
+
+MSI — Metabolomics Standards Initiative
+
+mQACC — Metabolomics Quality Assurance & Quality Control Consortium
+
+m/z — Mass-to-charge ratio
+
+PCA — Principal Components Analysis
+
+PLS-DA — Partial Least Squares Discriminant Analysis
+
+PQN — Probabilistic Quotient Normalization
+
+QA — Quality Assurance
+
+QC — Quality Control
+
+RSD — Relative Standard Deviation
+
+RT — Retention Time
+
+SE — SummarizedExperiment
+
+SPF — Specific Pathogen-Free
+
+TSE — TreeSummarizedExperiment
+
+t-SNE — T-Distributed Stochastic Neighbor Embedding
+
+
+\let\mainmatter\mainmatterreal
+\mainmatter

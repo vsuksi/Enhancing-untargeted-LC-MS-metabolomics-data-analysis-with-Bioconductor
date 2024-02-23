@@ -1,0 +1,11 @@
+# Research objectives
+
+Notame may be implementable with Bioconductor given Bioconductor's philosophy of interoperability. It is postulated that untargeted LC-MS metabolomics data analysis can be enhanced by implementing Notame in a reproducible, Bioconductor-compatible workflow. The specific aims are as follows:
+
+1. To explore the extent and interoperability of untargeted LC-MS metabolomics data analysis functionality in Bioconductor
+
+2. To operationalize Bioconductor and Quarto in a Bioconductor-compatible workflow spanning Notame
+
+3. To discuss departures from Notame and other limitations in the Bioconductor-compatible workflow
+
+Addressing the above aims, substantive research efforts may be better equipped to meet the increasing demands on reproducibility and quality, as per the Research Council of Finland’s strategy contributing to the renewal, quality and societal impact of science. Moreover, Bioconductor may offer functionality accommodating varied research needs and encourage the development of best practices in Bioconductor.

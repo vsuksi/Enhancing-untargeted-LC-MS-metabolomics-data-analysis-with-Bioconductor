@@ -1,0 +1,150 @@
+# References
+
+Allaire et al. (2022). Quarto, version 1.2. https://github.com/quarto-dev/quarto-cli (accessed in January 2024).
+
+Amrhein et al. (2019). Inferential Statistics as Descriptive Statistics: There Is No Replication Crisis if We Don’t Expect Replication. The American Statistician, 73: 262-270.
+
+Ardrey (2003). Liquid Chromatography – Mass Spectrometry: An Introduction. John Wiley & Sons.
+
+Berg et al. (2006). Centering, scaling, and transformations: improving the biological information content of metabolomics data. BMC Genomics, 7: 142-157.
+
+Benton et al. (2015). An Interactive Cluster Heat Map to Visualize and Explore Multidimensional Metabolomic Data. Metabolomics, 11: 1029-1034.
+
+Breheny et al. (2018). p-Value Histograms: Inference and Diagnostics. High Throughput, 7: article 23.
+
+Breiman (2001). Statistical modeling: The Two Cultures. Statistical Science, 16: 199-215.
+
+Broadhurst et al. (2018). Guidelines and considerations for the use of system suitability and quality control samples in mass spectrometry assays applied in untargeted clinical metabolomic studies. Metabolomics, 14: article 72.
+
+Broeckling et al. (2014). RAMClust: A Novel Feature Clustering Method Enables Spectral-Matching-Based Annotation for Metabolomics Data. Analytical Chemistry, 86: 6812-6817.
+
+Castellano-Escuder et al. (2021). POMAShiny: A user-friendly web-based workflow for metabolomics and proteomics data analysis. PLOS Computational Biology, 17: 1-15.
+
+Dekermanjian et al. (2022). Mechanism-aware imputation: a two-step approach in handling missing values in metabolomics. BMC Bioinformatics, 23: article 179.
+
+Dieterle et al. (2006). Probabilistic Quotient Normalization as Robust Method to Account for Dilution of Complex Biological Mixtures. Application in 1H NMR Metabonomics. Analytical Chemistry, 78: 4281-4290.
+
+Dunn et al. (2013). Procedures for large-scale metabolic profiling of serum and plasma using gas chromatography and liquid chromatography coupled to mass spectrometry. Nature Protocols, 6: 1060-1083.
+
+Erngren et al. (2019). Adduct formation in electrospray ionisation-mass spectrometry with hydrophilic interaction liquid chromatography is strongly affected by the inorganic ion concentration of the samples. Journal of Chromatography A, 1600: 174-182.
+
+Ernst et al. (2023). mia: Microbiome analysis, version 1.10.0. https://bioconductor.org/packages/mia (accessed in January 2024)
+
+Fidler et al. (2021). Reproducibility of Scientific Results. The Stanford Encyclopedia of Philosophy (Summer 2021 Edition).
+
+Fiehn (2002). Metabolomics – the link between genotypes and phenotypes. Plant Molecular Biology, 48: 155-171.
+
+Gatto et al. (2023). QFeatures: Quantitative features for mass spectrometry data. https://bioconductor.org/packages/QFeatures (accessed in January 2024)
+
+Gentleman et al. (2004). Bioconductor: open software development for computational biology and bioinformatics. Genome biology 5: article 80.
+
+Gika et al. (2019) Untargeted LC/MS-based metabolic phenotyping (metabonomics/metabolomics): The state of the art. Journal of Chromatography B, 1117: 136-147.
+
+Goodacre et al. (2007). Proposed minimum reporting standards for data analysis in metabolomics. Metabolomics, 3: 241-241.
+
+Goodacre et al. (2020). Data Analysis Standards in metabolomics. https://github.com/MSI-Metabolomics-Standards-Initiative/CIMR/blob/master/cimr-DA%20standardsVer2.pdf (accessed in January 2024).
+
+Grace and Hudson (2016). Processing and Visualization of Metabolomics Data Using R. Intech.
+
+Grissa et al. (2016). Feature Selection Methods for Early Predictive Biomarker Discovery Using Untargeted Metabolomic Data. Frontiers in Molecular Biosciences, 3: article 30.
+
+Guida et al. (2016). Non-targeted UHPLC-MS metabolomic data processing methods: a comparative investigation of normalisation, missing value imputation, transformation and scaling. Metabolomics, 12: article 93.
+
+Hendriks et al. (2011). Data-processing strategies for metabolomics studies. Trends in Analytical Chemistry 30: article 10.
+
+Hoffmann et al. (2021). The multiplicity of analysis strategies jeopardizes replicability: lessons learned across disciplines. Royal Society Open Science, 8: article 201925.
+
+Huang et al. (2021). TreeSummarizedExperiment: a S4 class for data with hierarchical structure. F1000 Research, 9: article 1246.
+
+Iterson et al. (2009). Relative power and sample size analysis on gene expression profiling data. BMC Genomics, 10: article 439.
+
+Jafari et al. (2019). Why, When and How to Adjust Your P Values? Cell Journal,
+20: article 4.
+
+Jankevics et al. (2023). pmp: Peak Matrix Processing and signal batch correction for metabolomics datasets. https://bioconductor.org/packages/pmp (accessed in January 2024)
+
+Jauhiainen et al. (2014). Normalization of metabolomics data with applications to correlation maps. Bioinformatics, 30: 2155-2161.
+
+Johansson et al. (2023). Precision medicine in complex diseases—Molecular subgrouping for improved prediction and treatment stratification. Journal of Internal Medicine, 294: article 4.
+
+Johnson et al. (2016). Metabolomics: beyond biomarkers and towards mechanisms. Nature Reviews Molecular Cell Biology, 17: 451-459.
+
+Joo et al. (2023). qmtools: Quantitative Metabolomics Data Processing Tools, version 1.6.0. https://bioconductor.org/packages/qmtools (accessed in January 2024).
+
+Kanwal et al. (2017). Investigating reproducibility and tracking provenance – A genomic workflow case study. BMC Bioinformatics, 18: article 337.
+
+Kirwan et al. (2022). Quality assurance and quality control reporting in untargeted metabolic phenotyping: mQACC recommendations for analytical quality management. Metabolomics, 18: article 70.
+
+Klåvus et al. (2020). “Notame”: Workflow for Non-Targeted LC–MS Metabolic Profiling. Metabolites, 10: article 135.
+
+Kohl et al. (2012). State-of-the art data normalization methods improve NMR-based metabolomic analysis. Metabolomics, 8: 146-160.
+
+Kokla et al. (2019). Random forest-based imputation outperforms other methods for imputing LC-MS metabolomics data: A comparative study. BMC Bioinformatics, 20: article 492.
+
+Krzywinski et al. (2014). Visualizing samples with box plots. Nature Methods, 11: 119-120.
+
+Kvalheim et al. (1994). Preprocessing of Analytical Profiles in the Presence of Homoscedastic or Heteroscedastic Noise. Analytical Chemistry, 66: 43-51.
+
+Kärkkäinen et al. (2021). Changes in the metabolic profile of human male postmortem frontal cortex and cerebrospinal fluid samples associated with heavy alcohol use. Addiction Biology, 26: e13035.
+
+Lahti et al. (2021). Orchestrating Microbiome Analysis with R and Bioconductor. https://microbiome.github.io/oma/ (accessed in October 2023).
+
+Lewis et al. (2016). Development and Application of Ultra-Performance Liquid Chromatography-TOF MS for Precision Large Scale Urinary Metabolic Phenotyping. Analytical Chemistry, 88: 9004-9013.
+
+Lin et al. (2012). A support vector machine-recursive feature elimination feature selection method based on artificial contrast variables and mutual information. Journal of Chromatography B, 910: 149-155.
+
+McCarthy et al. (2017). Scater: pre-processing, quality control, normalisation and visualisation of single-cell RNA-seq data in R. Bioinformatics, 33: 1179-1186.
+
+McMaster (2005). LC/MS: A Practical User's Guide. John Wiley & Sons.
+
+Miyakawa et al. (2020). No raw data, no science: another possible source of the reproducibility crisis. Molecular Brain, 13: article 24.
+
+Morgan et al. (2023). SummarizedExperiment: SummarizedExperiment container, version 1.32.0. https://bioconductor.org/packages/SummarizedExperiment (accessed in January 2024).
+
+Murtagh et al. (2014). Ward’s Hierarchical Agglomerative Clustering Method: Which Algorithms Implement Ward’s Criterion? Journal of Classification, 31: 274-295.
+
+Märtens et al. (2023). Instrumental Drift in Untargeted Metabolomics: Optimizing Data Quality with Intrastudy QC Samples. Metabolites, 13: article 5.
+
+Patti et al. (2013). A View from Above: Cloud Plots to Visualize Global Metabolomic Data. Analytical Chemistry, 85: 798-804.
+
+Pessa-Morikawa et al. (2022). Maternal microbiota-derived metabolic profile in fetal murine intestine, brain and placenta. BMC Microbiology, 22: article 46.
+
+Picard et al. (2021). Integration strategies of multi-omics data for machine learning analysis. Computational and Structural Biotechnology, 19: 3735-3746.
+
+Rainer (2023). MsFeatures: Functionality for Mass Spectrometry Features, version 1.10.0. https://bioconductor.org/packages/MsFeatures (accessed in October 2023).
+
+Ramos et al. (2017). Software for the Integration of Multiomics Experiments in Bioconductor. Cancer Research, 77: 39-42.
+
+Rinaudo et al. (2016). biosigner: A New Method for the Discovery of Significant Molecular Signatures from Omics Data. Frontiers in Molecular Biosciences, 3: article 26.
+
+Schug and McNair (2003). Adduct formation in electrospray ionization mass spectrometry: II. Benzoic acid derivatives. Journal of Chromatography A, 985: 531-539.
+
+Scully (2004). What is a disease? EMBO Reports, 5: 650-653.
+
+Shi et al. (2019). Variable selection and validation in multivariate modelling. Bioinformatics, 35: 972-980.
+
+Shimadzu. Basics of Liquid Chromatograph-Mass Spectrometry. https://www.shimadzu.com/an/service-support/technical-support/liquid-chromatograph-mass-spectrometry/index.html (accessed in January 2024).
+
+Suksi (2024). Enhancing untargeted LC-MS metabolomics data analysis with Bioconductor. https://github.com/vsuksi/Enhancing-untargeted-LC-MS-metabolomics-data-analysis-with-Bioconductor (accessed in January 2024).
+
+Sumner et al. (2007). Proposed minimum reporting standards for chemical analysis. PMC Metabolomics, 3: article 3.
+
+Sysi-Aho et al. (2007). Normalization method for metabolomics data using optimal selection of multiple internal standards. BMC Bioinformatics, 8: article 93.
+
+Thenovot (2023). phenomis: Postprocessing and univariate analysis of omics data. https://bioconductor.org/packages/phenomis (accessed in January 2024)
+
+Tsugawa et al. (2015). MS-DIAL: data independent MS/MS deconvolution for comprehensive metabolome analysis. Nature Methods, 12: 523-526.
+
+Veselkov et al. (2011). Optimized Preprocessing of Ultra-Performance Liquid Chromatography/Mass Spectrometry Urinary Metabolic Profiles for Improved Information Recovery. Analytical Chemistry, 83: 5864-5872.
+
+Vinaixa et al. (2012). A Guideline to Univariate Statistical Analysis for LC/MS-Based Untargeted Metabolomics-Derived Data. Metabolites, 2: 775-795.
+
+Watson (2023). On the Philosophy of Unsupervised Learning. Philosophy & Technology, 36: article 28.
+
+Waikar et al. (2010). Normalization of urinary biomarkers to creatinine during changes in glomerular filtration rate. Kidney International, 78: 486-494.
+
+Wei et al. (2018). Missing Value Imputation Approach for Mass Spectrometry-based Metabolomics Data. Scientific Reports, 8: article 663.
+
+Xia et al. (2013). Translational biomarker discovery in clinical metabolomics: an introductory tutorial. Metabolomics, 9: 280-299.
+
+Zulfigar et al. (2023). MAW: the reproducible Metabolome Annotation Workflow for untargeted tandem mass spectrometry. Journal of Cheminformatics, 15: article 32.
